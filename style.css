@@ -1,0 +1,206 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+#app {
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+h2 {
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+section {
+    margin-bottom: 40px;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.input-group input[type="text"],
+.input-group input[type="number"],
+.input-group textarea,
+#file-upload {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.button-group {
+    margin-top: 20px;
+    text-align: right;
+}
+
+.by
+{
+    font-size: 10px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: #fff;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#admin-login-btn,
+#switch-mode-btn {
+    background-color: #6c757d;
+}
+
+#admin-login-btn:hover,
+#switch-mode-btn:hover {
+    background-color: #5a6268;
+}
+
+.team-item,
+.investor-item {
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column; /* 세로 방향으로 정렬 */
+    align-items: flex-start; /* 왼쪽 정렬 */
+    gap: 10px;
+}
+
+.team-item.top-3 {
+    background-color: #fffacd;
+}
+
+.investor-item.top-3 {
+    background-color: #e0f7fa;
+}
+
+.rank-badge {
+    background-color: #ffc107;
+    color: #333;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.team-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.team-info strong {
+    flex-grow: 1;
+}
+
+.team-info span {
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ✅ 수정된 부분: 투자 폼을 가로로 정렬하고 간격을 조정 */
+.invest-form {
+    display: flex;
+    gap: 10px;
+    width: 100%; /* 부모 너비에 맞춤 */
+}
+
+.invest-form input {
+    flex: 1; /* 입력 필드가 남은 공간을 채우도록 설정 */
+    min-width: 100px;
+}
+
+.invest-form button {
+    padding: 5px 10px;
+    white-space: nowrap; /* 줄바꿈 방지 */
+}
+
+#investment-status {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f0f8ff;
+    border: 1px solid #b0c4de;
+    border-radius: 5px;
+}
+
+#student-info {
+    background-color: #e9ecef;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+#student-info strong {
+    color: #0056b3;
+}
+
+#my-investments li {
+    list-style-type: none;
+    padding: 5px;
+}
+
+.error-message {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* ✅ 아래 스타일을 파일 맨 끝에 추가하세요. */
+
+.input-wrapper {
+    flex: 1; /* .invest-form 안에서 가능한 많은 공간을 차지하도록 설정 */
+    display: flex;
+    align-items: center; /* 내부 요소를 세로 중앙에 정렬 */
+    border: 1px solid #ccc; /* input과 비슷하게 테두리 추가 */
+    border-radius: 4px;
+    background-color: #fff; /* 배경색 지정 */
+    padding-right: 8px; /* '만원' 텍스트와 테두리 사이 여백 */
+}
+
+/* wrapper 안의 input은 테두리와 배경을 없애서 자연스럽게 만듭니다 */
+.input-wrapper input {
+    border: none;
+    outline: none; /* 포커스 시 나타나는 외곽선 제거 */
+    background: transparent; /* 배경 투명하게 */
+    width: 100%; /* 부모 요소(wrapper)를 꽉 채움 */
+    padding: 10px; /* 기존 input의 패딩값과 동일하게 설정 */
+    box-sizing: border-box;
+}
+
+.input-wrapper span {
+    color: #555;
+    white-space: nowrap; /* '만원' 텍스트가 줄바꿈되지 않도록 설정 */
+}
