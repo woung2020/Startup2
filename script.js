@@ -1,12 +1,12 @@
 const firebaseConfig = {
-  apiKey: "AIzaSyDinTxM2TbKQY9KN7Hj7Ey5-bxGaBlm7bg",
-  authDomain: "startup2-c50b9.firebaseapp.com",
-  databaseURL: "https://startup2-c50b9-default-rtdb.firebaseio.com",
-  projectId: "startup2-c50b9",
-  storageBucket: "startup2-c50b9.firebasestorage.app",
-  messagingSenderId: "545978548363",
-  appId: "1:545978548363:web:a5b2386c557a89c318948e",
-  measurementId: "G-K9W3YCQLHY"
+    apiKey: "AIzaSyDinTxM2TbKQY9KN7Hj7Ey5-bxGaBlm7bg",
+    authDomain: "startup2-c50b9.firebaseapp.com",
+    databaseURL: "https://startup2-c50b9-default-rtdb.firebaseio.com",
+    projectId: "startup2-c50b9",
+    storageBucket: "startup2-c50b9.firebasestorage.app",
+    messagingSenderId: "545978548363",
+    appId: "1:545978548363:web:a5b2386c557a89c318948e",
+    measurementId: "G-K9W3YCQLHY"
 };
 
 
@@ -56,6 +56,18 @@ function calculateReturn(investment, rank) {
     return investment * bonusFactor;
 }
 
+// ✅ 학번에서 반 정보를 추출하는 헬퍼 함수
+// 예: 20419 -> 2학년 04반 -> 2학년 4반
+function getClassName(studentId) {
+    if (typeof studentId === 'string' && studentId.length >= 3) {
+        // 학번 5자리에서 1번째 자리는 학년, 2~3번째 자리는 반
+        const grade = studentId.substring(0, 1);
+        const classNum = parseInt(studentId.substring(1, 3), 10);
+        return `${grade}학년 ${classNum}반`;
+    }
+    return '반 정보 없음';
+}
+
 // 렌더링 함수
 function render() {
     const { isAdmin } = getUrlParams();
@@ -75,7 +87,7 @@ function render() {
             rank: index + 1,
         }));
 
-    // ✅ 학생 순위 계산
+    // ✅ 학생 순위 계산 (전체 순위)
     const investorRanks = investorsData
         .map((investor) => {
             let totalReturn = 0;
@@ -94,8 +106,37 @@ function render() {
         .sort((a, b) => b.totalReturn - a.totalReturn)
         .map((investor, index) => ({
             ...investor,
-            rank: index + 1,
+            rank: index + 1, // 전체 순위
         }));
+
+    // ✅ 반별 학생 순위 계산 및 정렬
+    const classInvestments = investorRanks.reduce((acc, investor) => {
+        const className = getClassName(investor.studentId);
+        if (!acc[className]) {
+            acc[className] = [];
+        }
+        acc[className].push(investor);
+        return acc;
+    }, {});
+
+    const classRanks = Object.keys(classInvestments).map(className => {
+        // 반 내에서 총 수익 기준으로 다시 정렬하여 반별 순위를 매깁니다.
+        const rankedStudents = classInvestments[className]
+            .sort((a, b) => b.totalReturn - a.totalReturn)
+            .map((student, index) => ({
+                ...student,
+                classRank: index + 1 // 반 내 순위
+            }));
+
+        return {
+            className: className,
+            students: rankedStudents
+        };
+    }).sort((a, b) => {
+        // 반 이름으로 정렬 (예: 2학년 1반, 2학년 10반 순)
+        return a.className.localeCompare(b.className, 'ko', { numeric: true });
+    });
+
 
     // 관리자 모드 렌더링
     if (isAdmin) {
@@ -117,8 +158,13 @@ function render() {
                 <h3>2. 팀별 투자 현황</h3>
                 <ul id="team-rank-list"></ul>
 
-                <h3>3. 학생 투자 현황</h3>
+                <h3>3. 전체 학생 투자 현황</h3>
                 <ul id="investor-rank-list"></ul>
+
+                <hr/>
+                
+                <h3>4. 반별 학생 투자 순위 🏆</h3> 
+                <div id="class-rank-lists"></div> 
             </section>
         `;
         // 팀 명칭 수정
@@ -158,7 +204,7 @@ function render() {
             teamRankList.appendChild(li);
         });
 
-        // 학생 순위 리스트
+        // 전체 학생 순위 리스트
         const investorRankList = document.getElementById('investor-rank-list');
         investorRanks.forEach(investor => {
             const li = document.createElement('li');
@@ -172,6 +218,27 @@ function render() {
                 </div>
             `;
             investorRankList.appendChild(li);
+        });
+
+        // ✅ 반별 학생 순위 리스트 렌더링
+        const classRankListsDiv = document.getElementById('class-rank-lists');
+        classRanks.forEach(classData => {
+            const classSection = document.createElement('div');
+            classSection.innerHTML = `
+                <h4>${classData.className} 순위 (${classData.students.length}명)</h4>
+                <ul class="class-rank-list">
+                    ${classData.students.map(student => `
+                        <li class="investor-item ${student.classRank <= 3 ? 'top-3-class' : ''}">
+                            <div class="team-info">
+                                <span class="rank-badge">${student.classRank}위 (전체 ${student.rank}위)</span>
+                                <strong>${student.studentId} ${student.name}</strong>
+                                <span>총 수익: ${student.totalReturn.toLocaleString()}만원</span>
+                            </div>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+            classRankListsDiv.appendChild(classSection);
         });
         
         // 모드 전환 버튼
@@ -277,8 +344,11 @@ function render() {
                 li.className = 'team-item' + (isInvested ? ' invested-team' : '');
                 
                 // ✅ 셀렉트 박스 생성
+                const investedAmount = currentStudent.investments ? Object.values(currentStudent.investments).reduce((sum, inv) => sum + inv.amount, 0) : 0;
+                const remainingAmount = MAX_TOTAL_INVESTMENT - investedAmount;
+
                 const selectOptions = FIXED_INVESTMENT_AMOUNTS
-                    .filter(amount => amount <= (MAX_TOTAL_INVESTMENT - (currentStudent.investments ? Object.values(currentStudent.investments).reduce((sum, inv) => sum + inv.amount, 0) : 0)))
+                    .filter(amount => amount <= remainingAmount) // 남은 금액보다 적거나 같은 금액만 표시
                     .map(amount => `<option value="${amount}">${amount.toLocaleString()}만원</option>`)
                     .join('');
 
@@ -356,15 +426,15 @@ function render() {
                     
                     firebase.database().ref().update(updates)
                         .then(() => {
-                            // 현재 학생 객체 업데이트
-                            if (!currentStudent.investments) {
-                                currentStudent.investments = {};
-                            }
-                            currentStudent.investments[teamId] = { teamId, amount: amount };
-                            updateMyInvestments();
-                            updateInvestmentStatus();
+                            // 현재 학생 객체 업데이트 (render()가 DB 동기화 후 다시 실행하므로 이 부분은 삭제 가능하나 안전을 위해 남겨둠)
+                            // if (!currentStudent.investments) {
+                            //     currentStudent.investments = {};
+                            // }
+                            // currentStudent.investments[teamId] = { teamId, amount: amount };
+                            // updateMyInvestments();
+                            // updateInvestmentStatus();
                             alert(`투자가 완료되었습니다! (${amount.toLocaleString()}만원)`);
-                            render(); // UI 전체 다시 렌더링하여 투자 불가능하게 만듦
+                            // render()는 DB 동기화 리스너에 의해 호출됩니다.
                         })
                         .catch(error => {
                             console.error("투자 업데이트 실패: ", error);
@@ -392,7 +462,7 @@ function render() {
 
             // 내 투자 초기화 버튼
             document.getElementById('clear-investments-btn').addEventListener('click', () => {
-                if (!confirm('정말로 모든 투자를 초기화하시겠습니까?')) return;
+                if (!confirm('정말로 모든 투자를 초기화하시겠습니까? (이 작업은 되돌릴 수 없습니다!)')) return;
                 if (!currentStudent.investments) return;
 
                 const updates = {};
@@ -407,11 +477,11 @@ function render() {
 
                 firebase.database().ref().update(updates)
                     .then(() => {
-                        currentStudent.investments = {};
-                        updateMyInvestments();
-                        updateInvestmentStatus();
-                        alert('투자가 성공적으로 초기화되었습니다.');
-                        render(); // 초기화 후 팀 리스트도 업데이트
+                        // currentStudent.investments = {};
+                        // updateMyInvestments();
+                        // updateInvestmentStatus();
+                        alert('투자가 성공적으로 초기화되었습니다. (화면이 새로고침됩니다)');
+                        // render()는 DB 동기화 리스너에 의해 호출됩니다.
                     })
                     .catch(error => {
                         console.error("초기화 실패: ", error);
@@ -447,9 +517,15 @@ teamRef.on('value', (snapshot) => {
 investorsRef.on('value', (snapshot) => {
     const data = snapshot.val();
     investorsData = data ? Object.values(data) : [];
-    if(currentStudent) {
+    if(currentStudent && data) {
         // 실시간으로 currentStudent 객체를 DB의 최신 데이터로 업데이트
-        currentStudent = investorsData.find(inv => inv.studentId === currentStudent.studentId) || currentStudent;
+        const updatedStudent = data[currentStudent.studentId];
+        if (updatedStudent) {
+            currentStudent = updatedStudent;
+        } else {
+            // 학생 데이터가 사라진 경우 (예: 관리자가 삭제)
+            // currentStudent = null; 
+        }
     }
     render();
 });
@@ -473,8 +549,15 @@ function handleFileUpload(e) {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
+        // 'header: 1' 옵션은 모든 행을 배열로 가져옵니다. 
+        // 여기서는 단일 열에 팀 이름이 있다고 가정하고 flat()으로 펼칩니다.
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         const names = rows.flat().filter(name => name && typeof name === 'string' && name.trim() !== '');
+
+        if (names.length === 0) {
+            alert("파일에서 유효한 팀 이름을 찾을 수 없습니다.");
+            return;
+        }
 
         const newTeamsData = {};
         names.forEach((name, index) => {
