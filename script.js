@@ -24,7 +24,7 @@ let currentStudent = null;
 const app = document.getElementById('app');
 
 // ✅ 고정된 투자 금액 (만원 단위)
-const FIXED_INVESTMENT_AMOUNTS = [300, 250, 200, 150, 100];
+const FIXED_INVESTMENT_AMOUNTS = [300, 250, 200, 150, 100, 50];
 const MAX_TOTAL_INVESTMENT = 1000; // 1,000만원
 
 // URL에서 관리자 모드 상태 로드
@@ -285,7 +285,6 @@ function render() {
                 li.innerHTML = `
                     <div class="team-info">
                         <strong>${team.name}</strong>
-                        <span>총 투자금: ${(team.totalInvestment || 0).toLocaleString()}만원</span>
                     </div>
                     <div class="invest-form">
                         ${isInvested 
