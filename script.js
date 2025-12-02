@@ -56,7 +56,7 @@ function calculateReturn(investment, rank) {
     return investment * bonusFactor;
 }
 
-// ✅ 학번에서 반 정보를 추출하는 헬퍼 함수
+// 학번에서 반 정보를 추출하는 헬퍼 함수
 // 예: 20419 -> 2학년 04반 -> 2학년 4반
 function getClassName(studentId) {
     if (typeof studentId === 'string' && studentId.length >= 3) {
@@ -71,7 +71,11 @@ function getClassName(studentId) {
 // 렌더링 함수
 function render() {
     const { isAdmin } = getUrlParams();
-    app.innerHTML = ''; // 기존 내용 초기화
+    
+    // ✅ 렌더링 로직 시작 시, 현재 화면이 로그인 상태가 아닐 경우만 초기화 (로그인 중 입력 유지)
+    if (app.querySelector('#student-login') === null) {
+        app.innerHTML = ''; // 기존 내용 초기화
+    }
 
     // ✅ 팀 순위 계산
     const teamRanks = teamsData
@@ -140,6 +144,8 @@ function render() {
 
     // 관리자 모드 렌더링
     if (isAdmin) {
+        // 관리자 모드로 전환될 때는 전체 초기화
+        app.innerHTML = ''; 
         app.innerHTML = `
             <section id="admin-mode">
                 <h2>관리자 모드</h2>
@@ -220,7 +226,7 @@ function render() {
             investorRankList.appendChild(li);
         });
 
-        // ✅ 반별 학생 순위 리스트 렌더링
+        // 반별 학생 순위 리스트 렌더링
         const classRankListsDiv = document.getElementById('class-rank-lists');
         classRanks.forEach(classData => {
             const classSection = document.createElement('div');
@@ -250,16 +256,21 @@ function render() {
     } else { // 학생 모드 렌더링
         if (!currentStudent) {
             // 로그인 화면
+            // ✅ 이 때만 app.innerHTML = '' 초기화를 하지 않아 입력 필드 내용 유지
+            if (app.querySelector('#student-login') === null) {
+                app.innerHTML = '';
+            }
+            
             app.innerHTML = `
                 <section id="student-login">
                     <h2>학생 투자 참여<span class="by"> by 차현준</span></h2>
                     <div class="input-group">
                         <label for="student-id">학번 (숫자 5자리)</label>
-                        <input type="text" id="student-id" placeholder="예: 20419" required maxlength="5">
+                        <input type="text" id="student-id" placeholder="예: 20419" required maxlength="5" value="${currentStudent ? currentStudent.studentId : ''}">
                     </div>
                     <div class="input-group">
                         <label for="student-name">이름</label>
-                        <input type="text" id="student-name"  placeholder="예: 차현준" required>
+                        <input type="text" id="student-name"  placeholder="예: 차현준" required value="${currentStudent ? currentStudent.name : ''}">
                     </div>
                     <button id="start-investment-btn">투자 시작</button>
                 </section>
@@ -306,6 +317,8 @@ function render() {
 
         } else {
             // 투자 화면
+            // ✅ 투자 화면으로 전환 시에만 전체 초기화
+            app.innerHTML = ''; 
             app.innerHTML = `
                 <section id="student-mode">
                     <h2>학생 투자 모드<span class="by"> by 차현준</span></h2>
@@ -413,7 +426,7 @@ function render() {
                     const teamToUpdate = teamsData.find(t => t.id === teamId);
                     
                     if (teamToUpdate) {
-                        // 학생의 투자 정보 업데이트 (새로운 투자이므로 currentInvestment는 0)
+                        // 학생의 투자 정보 업데이트 
                         updates[`investors/${currentStudent.studentId}/investments/${teamId}`] = { teamId, amount: amount };
                         
                         // 팀의 총 투자금 업데이트
@@ -426,15 +439,8 @@ function render() {
                     
                     firebase.database().ref().update(updates)
                         .then(() => {
-                            // 현재 학생 객체 업데이트 (render()가 DB 동기화 후 다시 실행하므로 이 부분은 삭제 가능하나 안전을 위해 남겨둠)
-                            // if (!currentStudent.investments) {
-                            //     currentStudent.investments = {};
-                            // }
-                            // currentStudent.investments[teamId] = { teamId, amount: amount };
-                            // updateMyInvestments();
-                            // updateInvestmentStatus();
                             alert(`투자가 완료되었습니다! (${amount.toLocaleString()}만원)`);
-                            // render()는 DB 동기화 리스너에 의해 호출됩니다.
+                            // DB 리스너가 호출되어 자동으로 UI 업데이트 됨
                         })
                         .catch(error => {
                             console.error("투자 업데이트 실패: ", error);
@@ -477,11 +483,8 @@ function render() {
 
                 firebase.database().ref().update(updates)
                     .then(() => {
-                        // currentStudent.investments = {};
-                        // updateMyInvestments();
-                        // updateInvestmentStatus();
-                        alert('투자가 성공적으로 초기화되었습니다. (화면이 새로고침됩니다)');
-                        // render()는 DB 동기화 리스너에 의해 호출됩니다.
+                        alert('투자가 성공적으로 초기화되었습니다.');
+                        // DB 리스너가 호출되어 자동으로 UI 업데이트 됨
                     })
                     .catch(error => {
                         console.error("초기화 실패: ", error);
@@ -504,6 +507,8 @@ function render() {
 }
 
 // ✅ Firebase 실시간 동기화 리스너
+// DB가 변경될 때마다 데이터를 업데이트하지만, UI 렌더링은 필요한 경우에만 합니다.
+
 teamRef.on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
@@ -511,26 +516,34 @@ teamRef.on('value', (snapshot) => {
     } else {
         teamsData = [];
     }
-    render();
+    // 데이터 변경이 관리자 모드나 로그인 후 투자 모드에만 영향을 미치므로 조건부 호출
+    const { isAdmin } = getUrlParams();
+    if (isAdmin || currentStudent) {
+        render(); 
+    }
 });
 
 investorsRef.on('value', (snapshot) => {
     const data = snapshot.val();
     investorsData = data ? Object.values(data) : [];
+    
+    // 현재 학생 객체를 최신 DB 데이터로 업데이트
     if(currentStudent && data) {
-        // 실시간으로 currentStudent 객체를 DB의 최신 데이터로 업데이트
         const updatedStudent = data[currentStudent.studentId];
         if (updatedStudent) {
             currentStudent = updatedStudent;
-        } else {
-            // 학생 데이터가 사라진 경우 (예: 관리자가 삭제)
-            // currentStudent = null; 
-        }
+        } 
     }
-    render();
+    
+    // ✅ UI를 다시 그리는 render() 함수를 무조건 호출하지 않고,
+    // 관리자 모드이거나 학생이 로그인 상태일 때만 호출하여 입력 중인 화면을 덮어쓰는 것을 방지
+    const { isAdmin } = getUrlParams();
+    if (isAdmin || currentStudent) {
+        render(); 
+    }
 });
 
-// 파일 업로드 처리 함수
+// 파일 업로드 처리 함수 (로직 변경 없음)
 function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) {
@@ -541,7 +554,6 @@ function handleFileUpload(e) {
     const reader = new FileReader();
     reader.onload = (evt) => {
         const data = new Uint8Array(evt.target.result);
-        // XLSX.read가 정의되어 있어야 합니다.
         if (typeof XLSX === 'undefined') {
             alert('XLSX 라이브러리가 로드되지 않았습니다.');
             return;
@@ -549,8 +561,6 @@ function handleFileUpload(e) {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        // 'header: 1' 옵션은 모든 행을 배열로 가져옵니다. 
-        // 여기서는 단일 열에 팀 이름이 있다고 가정하고 flat()으로 펼칩니다.
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         const names = rows.flat().filter(name => name && typeof name === 'string' && name.trim() !== '');
 
